@@ -25,6 +25,7 @@ class UpdateProductRequest extends FormRequest
             //
             'name'=>['sometimes','string','max:50'],
             'stock'=>['sometimes','integer','min:0'],
+            'image_path'=>['sometimes','image','mimes:jpg,png','max:2048'],
             'category_id'=>['sometimes','integer','exists:categories,id'],
             'price'=>['sometimes','numeric'],
             'active'=>['sometimes','boolean'],

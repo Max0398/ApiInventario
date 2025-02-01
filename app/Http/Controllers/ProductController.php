@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Responses\ApiResponse;
 use App\Http\Requests\StoreProductsRequest;
 use App\Http\Requests\UpdateProductRequest;
-use App\Http\Controllers\Responses\ApiResponse;
 use App\Models\Product;
-use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -24,6 +23,7 @@ class ProductController extends Controller
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
+                    'image_path' => $product->image_path ? asset('storage/' . $product->image_path) : null,
                     'price' => $product->price,
                     'stock' => $product->stock,
                     'category_id' => $product->category_id,
@@ -42,6 +42,13 @@ class ProductController extends Controller
     {
         try{
             $valid = $request->validated();
+            //guardar la imagen en el storage
+            if($request->hasFile('image_path')){
+                //guardara en storage/app/public/products
+                $imagePath = $request->file('image_path')->store('images', 'public');
+                $valid['image_path'] = $imagePath; //agregara la ruta validada
+            }
+
             $product= Product::create($valid);
             if(!$product){
                 return ApiResponse::error('Products not create',[],404);
@@ -52,7 +59,7 @@ class ProductController extends Controller
             return ApiResponse::success('isSuccess',$data);
         }
         catch (\Exception $exception){
-            return $exception->getMessage();
+            return ApiResponse::error('Error',$exception->getMessage(),[] ,500);
         }
 
     }

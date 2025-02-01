@@ -1,1 +1,2 @@
 composer require fpdf/fpdf
+necesario para acceder al storage de la imagen:php artisan storage:link

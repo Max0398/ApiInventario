@@ -26,6 +26,7 @@ class StoreProductsRequest extends FormRequest
             'name'=>['required','string','max:50'],
             'price'=>['required','numeric'],
             'stock'=>['required','integer','min:0'],
+            'image_path'=>['required','image','mimes:jpg,png,jpeg','max:2048'],
             'category_id'=>['required','integer'],
             'active'=>['required','boolean']
         ];
