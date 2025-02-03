@@ -116,13 +116,14 @@ class ProductController extends Controller
                 'category_id' => $product->category_id,
                 'description' => $descripcion,
                 'active' => $product->active,
+                'image_path' => $product->image_path ? asset('storage/' . $product->image_path) : null,
             ];
 
             // Devolver respuesta exitosa
             return ApiResponse::success('Product updated successfully', $data, 200);
         } catch (\Exception $exception) {
             // Devolver respuesta de error
-            return ApiResponse::error('An error occurred while updating the product', [], 500);
+            return ApiResponse::Error('An error occurred while updating the product', [], 500);
         }
     }
 

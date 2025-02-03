@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreUserRequest;
 use App\Http\Controllers\Responses\ApiResponse;
+use App\Http\Requests\StoreUserRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -52,15 +52,18 @@ class UserController extends Controller
     public function login(Request $request)
     {
         try {
+
             $loginData = $request->validate([
-                'email' => ['required', 'email', 'exists:users,email'],
+                'email' => ['required', 'email'],
                 'password' => ['required', 'string', 'min:8'],
             ]);
-
-            $user = User::where('email', $loginData['email'])->first();
-            if (!$user || !Hash::check($loginData['password'], $user->password)) {
-                return ApiResponse::Error('Login Failed', null, 401);
-            }
+           $user = User::where('email', $loginData['email'])->first();
+           if(!$user){
+               return ApiResponse::NotFound('Email Failed',[],200);
+           }
+           if (!Hash::check($loginData['password'], $user->password)) {
+               return ApiResponse::NotFound('Password  Failed',[],200);
+           }
 
             $role = $user->rols ? $user->rols->name : 'Sin rol asignado';
             $userData = [
@@ -71,7 +74,7 @@ class UserController extends Controller
             ];
             return ApiResponse::Success('Login Successfully', $userData, 201);
 
-        } catch (\Throwable $th) {
+        } catch (\Error $e) {
 
             return ApiResponse::Error('An error occurred', null, 500);
         }
