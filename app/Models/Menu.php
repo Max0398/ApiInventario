@@ -13,7 +13,7 @@ class Menu extends Model
 
     public function rols()
 {
-    return $this->belongsToMany(Role::class, 'menu_rol', 'menu_id', 'rol_id');
+    return $this->belongsToMany(Rols::class, 'menu_rol', 'menu_id', 'rol_id');
 }
 
 }

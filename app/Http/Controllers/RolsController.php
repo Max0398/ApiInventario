@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
+use App\Models\Rols;
 use App\Http\Controllers\Responses\ApiResponse;
 
-class RoleController extends Controller
+class RolsController extends Controller
 {
     public function index()
     {
         try {
-            $rols=Role::all();
+            $rols=Rols::all();
             if(!$rols){
                 return ApiResponse::NotFound();
             }

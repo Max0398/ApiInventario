@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RolsControler;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
@@ -30,7 +30,7 @@ Route::prefix('user')->group(function () {
     });
 });
 Route::prefix('rols')->group(function () {
-    Route::get('/', [RoleController::class, 'index']);
+    Route::get('/', [RolsController::class, 'index']);
 });
 
 //rutas de categoria
