@@ -2,21 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Responses\ApiResponse;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\UpdateOrderRequest;
-use App\Http\Controllers\Responses\ApiResponse;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         //cargar las relaciones entre , customer,order,producto solo los campos necesarios
         try {
-            $orders = Order::with([
+            // Iniciar la consulta con las relaciones cargadas
+            $ordersQuery = Order::with([
                 'customer' => function ($query) {
                     $query->select('id', 'name');
                 },
@@ -24,20 +27,38 @@ class OrderController extends Controller
                     $query->select('products.id as product_id', 'products.name', 'products.price')
                         ->withPivot('quantity', 'subtotal');
                 }
-            ])->get();
-            //mapear los columnas con la tabla intermedia y retornar una repuesta mas clara en el json
+            ]);
+
+            // Filtrar por nombre de cliente si se proporciona
+            if ($request->has('customer_name')) {
+                $customerName = $request->input('customer_name');
+                $ordersQuery->whereHas('customer', function ($query) use ($customerName) {
+                    $query->where('name', 'like', '%' . $customerName . '%');
+                });
+            }
+
+            // Filtrar por rango de fechas si se proporcionan ambas fechas
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $startDate = Carbon::parse($request->input('start_date'))->startOfDay(); // Convertir a inicio del día
+                $endDate = Carbon::parse($request->input('end_date'))->endOfDay(); // Convertir a fin del día
+                $ordersQuery->whereBetween('created_at', [$startDate, $endDate]);
+            }
+
+            $orders = $ordersQuery->get();
+
+            // Mapear las columnas con la tabla intermedia y retornar una respuesta mas clara con el json
             $data = $orders->map(function ($order) {
                 return [
                     'order_id' => $order->id,
                     'status' => $order->status,
                     'total' => $order->total,
-                    'order_date' => $order->created_at,
+                    'order_date' => $order->created_at->format('Y-m-d H:i:s'), // Formato corto
                     'customer_name' => $order->customer->name,
                     'products' => $order->products->map(function ($product) {
                         return [
                             'name' => $product->name,
                             'quantity' => $product->pivot->quantity,
-                            'subtotal' => $product->pivot->subtotal, // Asegúrate de usar 'subtotal'
+                            'subtotal' => $product->pivot->subtotal,
                             'price' => $product->price,
                         ];
                     }),
@@ -50,8 +71,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Error retrieving orders', 'error' => $e->getMessage()], 500);
         }
     }
-
-
     public function createOrder(StoreOrderRequest $request)
     {
         DB::beginTransaction();
