@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashBoardController;
+use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\MenuController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\OrderController;
 
 
 Route::get('/user', function (Request $request) {
@@ -57,7 +58,7 @@ Route::prefix('customers')->group(function () {
 // Rutas para productos (products)
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']);
-    Route::post('/store', [ProductController::class, 'store']);
+    Route::post('/register', [ProductController::class, 'store']);
     Route::get('/{product}', [ProductController::class, 'show']);
     Route::put('/{product}', [ProductController::class, 'update']);
     Route::delete('/{product}', [ProductController::class, 'destroy']);
@@ -71,10 +72,18 @@ Route::prefix('orders')->group(function () {
     Route::put('/{order}', [OrderController::class, 'update']);
 });
 
+//Generar Ticket
 Route::prefix('ticket')->group(function () {
     Route::get('generate/{order}', [TicketController::class, 'TicketGenerate']);
 });
+//DashBoard Data
+Route::prefix('dashboard')->group(function () {
+    Route::get('/', [DashBoardController::class, 'index']);
+});
 
-//Generar Ticket
+
+
+
+
 
 

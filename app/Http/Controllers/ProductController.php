@@ -51,12 +51,12 @@ class ProductController extends Controller
 
             $product= Product::create($valid);
             if(!$product){
-                return ApiResponse::error('Products not create',[],404);
+                return ApiResponse::error('Products not create',[],200);
             }
             $data=[
                 'product'=>$product,
             ];
-            return ApiResponse::success('isSuccess',$data);
+            return ApiResponse::success('isSuccess',$data,201);
         }
         catch (\Exception $exception){
             return ApiResponse::error('Error',$exception->getMessage(),[] ,500);

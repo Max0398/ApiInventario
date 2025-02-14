@@ -20,7 +20,7 @@ class OrderController extends Controller
         try {
             // Iniciar la consulta con las relaciones cargadas
             $ordersQuery = Order::with([
-                'customer' => function ($query) {
+                'user' => function ($query) {
                     $query->select('id', 'name');
                 },
                 'products' => function ($query) {
@@ -30,10 +30,10 @@ class OrderController extends Controller
             ]);
 
             // Filtrar por nombre de cliente si se proporciona
-            if ($request->has('customer_name')) {
-                $customerName = $request->input('customer_name');
-                $ordersQuery->whereHas('customer', function ($query) use ($customerName) {
-                    $query->where('name', 'like', '%' . $customerName . '%');
+            if ($request->has('user_name')) {
+                $userName = $request->input('user_name');
+                $ordersQuery->whereHas('user', function ($query) use ($userName) {
+                    $query->where('name', 'like', '%' . $userName . '%');
                 });
             }
 
@@ -53,7 +53,7 @@ class OrderController extends Controller
                     'status' => $order->status,
                     'total' => $order->total,
                     'order_date' => $order->created_at->format('Y-m-d H:i:s'), // Formato corto
-                    'customer_name' => $order->customer->name,
+                    'user_name' => $order->user->name,
                     'products' => $order->products->map(function ($product) {
                         return [
                             'name' => $product->name,
@@ -71,48 +71,45 @@ class OrderController extends Controller
             return response()->json(['message' => 'Error retrieving orders', 'error' => $e->getMessage()], 500);
         }
     }
+
     public function createOrder(StoreOrderRequest $request)
     {
         DB::beginTransaction();
         try {
-            $total = 0;
             $orderData = [];
 
             foreach ($request->products as $product) {
                 $productData = Product::find($product['id']);
-                if ($productData->stock < $product['quantity']) {
+                if (!$productData || $productData->stock < $product['quantity']) {
                     DB::rollBack();
-                    return response()->json(['message' => 'Not enough stock for product: ' . $productData->name], 400);
-                }
-                // Calcular el subtotal
-                $subTotal = $productData->price * $product['quantity'];
-
-                // Verificar si el producto ya existe en $orderData
-                if (isset($orderData[$product['id']])) {
-                    // Si existe, sumara la cantidad y el subtotal
-                    $orderData[$product['id']]['quantity'] += $product['quantity'];
-                    $orderData[$product['id']]['subTotal'] += $subTotal;
-                } else {
-                    // Si no existe, se agregara
-                    $orderData[$product['id']] = [
-                        'quantity' => $product['quantity'],
-                        'subTotal' => $subTotal,
-                    ];
+                    return response()->json(['message' => 'Not enough stock for product: ' . ($productData->name ?? 'Unknown')], 400);
                 }
 
-                // Descontar el stock del producto
-                $productData->decrement('stock', $product['quantity']);
-                // Sumar al total
-                $total += $subTotal;
+                // Guardar los datos enviados ya calculados
+                $orderData[$product['id']] = [
+                    'quantity' => $product['quantity'],
+                    'subtotal' => $product['subtotal'], // Guardar directamente desde el subTotal del frontend
+                ];
+
+                // Descontar stock con verificación de concurrencia
+                $updatedRows = Product::where('id', $product['id'])
+                    ->where('stock', '>=', $product['quantity'])
+                    ->decrement('stock', $product['quantity']);
+
+                if ($updatedRows === 0) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Stock inconsistency detected for product: ' . $productData->name], 400);
+                }
             }
 
-            // Crear la orden
+            // Crear la orden con el total enviado desde el frontend
             $order = Order::create([
-                'customer_id' => $request->customer_id,
+                'user_id' => $request->user_id,
                 'status' => $request->status,
-                'total' => $total,
+                'total' => $request->total, // Se usa el total enviado por el frontend
             ]);
-            // Asociar los productos a la orden
+
+            // Asociar los productos a la orden con los datos enviados
             $order->products()->attach($orderData);
 
             // Cargar los detalles de la orden
@@ -121,7 +118,7 @@ class OrderController extends Controller
                     $query->select('products.id as product_id', 'products.name', 'products.price')
                         ->withPivot('quantity', 'subTotal');
                 },
-                'customer' => function ($query) {
+                'user' => function ($query) {
                     $query->select('id', 'name');
                 }
             ]);
@@ -131,7 +128,7 @@ class OrderController extends Controller
                 'order_id' => $orderWithDetails->id,
                 'status' => $orderWithDetails->status,
                 'total' => $orderWithDetails->total,
-                'customer_name' => $orderWithDetails->customer->name,
+                'username' => $orderWithDetails->user->name,
                 'products' => $orderWithDetails->products->map(function ($product) {
                     return [
                         'name' => $product->name,
@@ -149,6 +146,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Error creating order', 'error' => $e->getMessage()], 500);
         }
     }
+
     public function update(UpdateOrderRequest $request, $orderId)
     {
         try {
