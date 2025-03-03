@@ -103,12 +103,13 @@ class OrderController extends Controller
                 // Descontar el stock del producto
                 $productData->decrement('stock', $product['quantity']);
                 // Sumar al total
-                $total += $subTotal;
+                $total -= $subTotal;
             }
 
             // Crear la orden
             $order = Order::create([
                 'customer_id' => $request->customer_id,
+                'user_id' => $request->user_id,
                 'status' => $request->status,
                 'total' => $total,
             ]);

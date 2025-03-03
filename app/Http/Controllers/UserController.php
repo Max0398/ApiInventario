@@ -8,42 +8,81 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-    public function register(StoreUserRequest $request):JsonResponse
+    public function register(StoreUserRequest $request)
     {
         try {
             /* validar los datos */
-            $newUser = $request->validated();
+            $Validator = Validator::make($request->all(), [
+                'name' => ['required', 'string'],
+                'email' => ['required', 'email', 'unique:users,email'],
+                'password' => ['required', 'string', 'min:8'],
+                'rol_id' => ['required', 'integer'],
+                'active' => ['required', 'boolean'],
+            ]);
 
-            /* encriptar el password ya validado */
-            $newUser['password'] = Hash::make($newUser['password']);
-
-            /* crear usuario */
-            $user = User::create($newUser);
-
-            /* comprobar si NO se creó exitosamente */
-            if (!$user) {
-                return ApiResponse::Error('Registration Failed');
+            if ($Validator->fails()) {
+                $data = [
+                    'message' => 'Error en la validación de los datos',
+                    'errors' => $Validator->errors(),
+                    'status' => 400,
+                ];
+                return response()->json($data, 400);
             }
 
-            $userData = [
+
+            //$newUser = $request->validated();
+
+            /* Estructurar los datos */
+            $newUser = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password), // encriptar el password
+                'rol_id' => $request->rol_id,
+                'active' => $request->active,
+            ]);
+
+            /* encriptar el password ya validado */
+           // $newUser['password'] = Hash::make($newUser['password']);
+
+            /* crear usuario */
+           // $user = User::create($newUser);
+
+            /* comprobar si NO se creó exitosamente */
+            if (!$newUser) {
+                $data = [
+                    'message' => 'Registro Fallido',
+                    'status' => 500,
+                ];
+                return response()->json($data, 500,);
+            }
+             
+            $data = [
+                'Usuario' => $newUser,
+                'status' => 201,
+            ];
+
+            return response()->json($data, 201);
+
+         /*****   $userData = [
                 'idUsuario' => $user->id,
                 'nombreCompleto' => $user->name,
                 'correo' => $user->email,
                 'rol_id' => $user->rol_id,
                 'rolDescripcion' => $user->rols->name ?? 'Sin rol asignado',
-            ];
+            ];******/
 
             /* Estructurar la respuesta */
-            $data = [
+            /***** $data = [
                 'user' => $userData,
                 // 'token' => $token, // incluir el token (pausado)
-            ];
+            ];****/
 
             /* devolver los datos */
-            return ApiResponse::Success('Registration Successfully', $data, 201);
+            //return ApiResponse::Success('Registration Successfully', $data, 201);
         } catch (\Throwable $th) {
             throw $th;
         }

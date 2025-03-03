@@ -6,6 +6,7 @@ use App\Http\Controllers\Responses\ApiResponse;
 use App\Http\Requests\StoreProductsRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
+use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
@@ -41,22 +42,46 @@ class ProductController extends Controller
     public function store(StoreProductsRequest $request)
     {
         try{
-            $valid = $request->validated();
-            //guardar la imagen en el storage
-            if($request->hasFile('image_path')){
-                //guardara en storage/app/public/products
-                $imagePath = $request->file('image_path')->store('images', 'public');
-                $valid['image_path'] = $imagePath; //agregara la ruta validada
+            $valid = Validator::make($request->all(),[
+                'name'=>['required','string','max:50'],
+                'description' =>['string','max:150'],
+                'price'=>['required','numeric'],
+                'stock'=>['required','integer','min:0'],
+                'category_id'=>['required | exists:category,id'],
+                'active'=>['required','boolean'],
+            ]);
+            if($valid-> fails()){
+                $data=[
+                    'message'=>'Error en la validacion de los datos',
+                    'errors' => $valid->errors(),
+                    'status' => 400,
+                ];
+                return response()->json($data, 400);
             }
+            /* Estructurar los datos */
+                $newProduct = Product::create($request->all());
+        /****        'name' => $request->name,
+                'description' => $request->description,
+                'price' => $request->price, // encriptar el password
+                'stock' => $request->stock,
+                'image_path' => $request->image_path,
+                'active' => $request->active,
+                'category_id' => $request->category_id,
+           ***/
 
-            $product= Product::create($valid);
-            if(!$product){
-                return ApiResponse::error('Products not create',[],404);
+
+            if(!$newProduct){
+               $data=[
+                     'message'=>'Error en la creacion del producto',
+                     'status'=>500,
+                ];
+                return response()->json($data,500);
             }
             $data=[
-                'product'=>$product,
+                'producto'=>$newProduct,
+                'status'=>201,
             ];
-            return ApiResponse::success('isSuccess',$data);
+            return response()->json($data,201);
         }
         catch (\Exception $exception){
             return ApiResponse::error('Error',$exception->getMessage(),[] ,500);

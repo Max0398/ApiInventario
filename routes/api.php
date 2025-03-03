@@ -10,6 +10,7 @@ use App\Http\Controllers\RolsControler;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
+use App\Http\controllers\UploadImageController;
 
 
 Route::get('/user', function (Request $request) {
@@ -40,13 +41,13 @@ Route::prefix('category')->group(function () {
 });
 
 //ruta para cargar los menus del usuario
-Route::prefix('menu')->group(function () {
+    Route::prefix('menu')->group(function () {
     Route::get('/{user}', [MenuController::class, 'menuUser']);
 });
 
 
 // Rutas para clientes (customers)
-Route::prefix('customers')->group(function () {
+    Route::prefix('customers')->group(function () {
     Route::get('/', [CustomerController::class, 'index']);
     Route::post('/', [CustomerController::class, 'store']);
     Route::get('/{customer}', [CustomerController::class, 'show']);
@@ -71,10 +72,13 @@ Route::prefix('orders')->group(function () {
     Route::put('/{order}', [OrderController::class, 'update']);
 });
 
+//Generar Ticket
 Route::prefix('ticket')->group(function () {
     Route::get('generate/{order}', [TicketController::class, 'TicketGenerate']);
 });
 
-//Generar Ticket
+//Cargar imagenes
 
-
+Route::prefix('upload')->group(function() {
+    Route::post('/', [UploadImageController::class, 'store']);
+});
